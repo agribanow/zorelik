@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Зорелік">
+<meta name="theme-color" content="#1b2a4a">
+<title>Зорелік · Star Math</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap');
+  :root{
+    --night:#1b2a4a; --night-2:#243a63; --lilac:#a89be0; --gold:#ffd25a; --gold-deep:#f4a93b;
+    --mint:#5fd6a6; --coral:#ff7a7a; --cream:#fdf7ec; --ink:#2a2440;
+    --card:rgba(255,255,255,0.10); --card-solid:#f4f0ff;
+    --radius:26px; --shadow:0 14px 40px rgba(10,14,30,0.35); font-size:16px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;height:100%;}
+  body{
+    font-family:'Fredoka',system-ui,-apple-system,sans-serif; color:var(--cream);
+    background:radial-gradient(120% 80% at 50% -10%, #2c3f6b 0%, var(--night) 55%, #131f38 100%);
+    overflow:hidden; overscroll-behavior:none; -webkit-user-select:none; user-select:none; touch-action:manipulation;
+  }
+  #sky{position:fixed;inset:0;z-index:0;pointer-events:none;}
+  .star-dot{position:absolute;border-radius:50%;background:#fff;opacity:0;animation:tw 4s ease-in-out infinite;}
+  @keyframes tw{0%,100%{opacity:.15;transform:scale(.7)}50%{opacity:.9;transform:scale(1)}}
+
+  #app{position:relative;z-index:1;height:100%;display:flex;flex-direction:column;
+       padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);}
+  .screen{flex:1;display:none;flex-direction:column;align-items:center;justify-content:center;padding:24px;animation:fade .35s ease;}
+  .screen.active{display:flex;}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  h1{font-size:clamp(2rem,7vw,3.4rem);font-weight:700;margin:0;letter-spacing:.5px;text-shadow:0 2px 0 rgba(0,0,0,.15);}
+  .tag{color:var(--lilac);font-weight:500;margin:6px 0 0;font-size:1.05rem;}
+
+  .btn{font-family:inherit;font-weight:600;border:none;cursor:pointer;border-radius:20px;padding:16px 22px;
+       font-size:1.15rem;color:var(--ink);background:var(--gold);box-shadow:0 6px 0 var(--gold-deep);transition:transform .08s,box-shadow .08s;}
+  .btn:active{transform:translateY(4px);box-shadow:0 2px 0 var(--gold-deep);}
+  .btn.ghost{background:var(--card);color:var(--cream);box-shadow:0 6px 0 rgba(0,0,0,.25);}
+  .btn.ghost:active{box-shadow:0 2px 0 rgba(0,0,0,.25);}
+  .btn.wide{width:100%;max-width:420px;}
+
+  .topbar{position:absolute;top:calc(env(safe-area-inset-top) + 14px);left:0;right:0;display:flex;align-items:center;
+          justify-content:space-between;padding:0 18px;z-index:5;}
+  .pill{background:var(--card);border-radius:999px;padding:8px 14px;display:flex;align-items:center;gap:8px;font-weight:600;backdrop-filter:blur(6px);}
+  .iconbtn{background:var(--card);border:none;color:var(--cream);width:44px;height:44px;border-radius:14px;font-size:1.3rem;
+           cursor:pointer;display:grid;place-items:center;}
+  .iconbtn:active{transform:scale(.92);}
+
+  .langtog{display:flex;background:var(--card);border-radius:999px;padding:4px;font-weight:600;}
+  .langtog button{border:none;background:transparent;color:var(--cream);padding:6px 12px;border-radius:999px;cursor:pointer;font-family:inherit;font-size:.95rem;opacity:.6;}
+  .langtog button.on{background:var(--gold);color:var(--ink);opacity:1;}
+
+  .grid{display:grid;gap:18px;width:100%;max-width:560px;}
+  .profiles{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin-top:8px;}
+  .profile-card{background:var(--card);border-radius:var(--radius);padding:20px 14px;text-align:center;cursor:pointer;border:2px solid transparent;transition:transform .12s;}
+  .profile-card:active{transform:scale(.96);}
+  .profile-card .ava{font-size:3.2rem;line-height:1;}
+  .profile-card .pname{margin-top:10px;font-weight:600;font-size:1.1rem;}
+  .profile-card .pstars{color:var(--gold);font-size:.95rem;margin-top:2px;}
+  .profile-card.add{display:grid;place-items:center;color:var(--lilac);border:2px dashed rgba(168,155,224,.5);}
+  .profile-card.add .ava{font-size:2.4rem;}
+
+  .ages{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));max-width:680px;}
+  .age-card{background:var(--card);border-radius:var(--radius);padding:20px 16px;cursor:pointer;text-align:center;border:2px solid transparent;transition:transform .12s;position:relative;overflow:hidden;}
+  .age-card:active{transform:scale(.96);}
+  .age-card .emoji{font-size:2.6rem;}
+  .age-card .arange{font-weight:700;font-size:1.3rem;margin-top:6px;}
+  .age-card .adesc{color:var(--lilac);font-size:.9rem;margin-top:4px;min-height:2.4em;}
+  .age-card .aprog{margin-top:10px;height:8px;background:rgba(0,0,0,.25);border-radius:999px;overflow:hidden;}
+  .age-card .aprog>div{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold-deep));width:0;}
+  .age-card .apct{font-size:.78rem;color:var(--cream);margin-top:4px;opacity:.8;}
+
+  /* level map */
+  .maphead{text-align:center;margin-bottom:8px;}
+  .maphead h1{font-size:clamp(1.6rem,5vw,2.4rem);}
+  .map{position:relative;width:100%;max-width:560px;flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:10px 0 40px;}
+  .node{position:relative;width:74px;height:74px;margin:0 auto;border-radius:50%;display:grid;place-items:center;
+        font-weight:700;font-size:1.5rem;cursor:pointer;border:3px solid transparent;transition:transform .1s;}
+  .node-wrap{display:flex;flex-direction:column;align-items:center;margin:9px 0;position:relative;}
+  .node.locked{background:var(--card);color:rgba(255,255,255,.4);cursor:not-allowed;}
+  .node.open{background:var(--night-2);color:var(--cream);box-shadow:0 5px 0 rgba(0,0,0,.3);}
+  .node.done{background:linear-gradient(160deg,var(--mint),#3bbf8a);color:#0c3b29;box-shadow:0 5px 0 #2c9b6e;}
+  .node.boss{background:linear-gradient(160deg,var(--gold),var(--gold-deep));color:var(--ink);box-shadow:0 5px 0 #d98a1f;}
+  .node.boss.locked{background:var(--card);color:rgba(255,255,255,.4);box-shadow:none;}
+  .node.current{border-color:#fff;animation:pulse 1.6s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{box-shadow:0 5px 0 rgba(0,0,0,.3),0 0 0 0 rgba(255,255,255,.5)}50%{box-shadow:0 5px 0 rgba(0,0,0,.3),0 0 0 10px rgba(255,255,255,0)}}
+  .node:active{transform:scale(.94);}
+  .node .nstars{position:absolute;bottom:-12px;font-size:.7rem;color:var(--gold);white-space:nowrap;letter-spacing:1px;}
+  .node .nlock{font-size:1.1rem;}
+  .node-label{font-size:.72rem;color:var(--lilac);margin-top:14px;}
+
+  .quizwrap{width:100%;max-width:560px;display:flex;flex-direction:column;align-items:center;gap:22px;}
+  .progress{width:100%;height:14px;background:var(--card);border-radius:999px;overflow:hidden;}
+  .progress>div{height:100%;width:0;background:linear-gradient(90deg,var(--gold),var(--gold-deep));border-radius:999px;transition:width .4s ease;}
+  .question{font-size:clamp(2.6rem,11vw,4.4rem);font-weight:700;text-align:center;background:var(--card-solid);color:var(--ink);
+            border-radius:var(--radius);padding:30px 24px;width:100%;box-shadow:var(--shadow);min-height:140px;display:flex;align-items:center;justify-content:center;gap:10px;}
+  .answers{display:grid;grid-template-columns:1fr 1fr;gap:14px;width:100%;}
+  .answer{font-family:inherit;font-weight:700;font-size:1.8rem;border:none;cursor:pointer;background:var(--night-2);color:var(--cream);
+          border-radius:20px;padding:24px 10px;box-shadow:0 6px 0 rgba(0,0,0,.3);transition:transform .08s,box-shadow .08s;}
+  .answer:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.3);}
+  .answer.correct{background:var(--mint);color:#0c3b29;animation:pop .3s;}
+  .answer.wrong{background:var(--coral);color:#5b1414;animation:shake .35s;}
+  .answer:disabled{opacity:.55;}
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.12)}100%{transform:scale(1)}}
+  @keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-8px)}75%{transform:translateX(8px)}}
+  .qcount{color:var(--lilac);font-weight:600;}
+  .qbadge{color:var(--gold);font-weight:600;font-size:.95rem;}
+
+  .reward{text-align:center;}
+  .reward .big{font-size:5rem;animation:pop .5s;}
+  .star-row{font-size:3rem;margin:10px 0;letter-spacing:6px;}
+  .earned{color:var(--gold);font-size:1.4rem;font-weight:700;}
+
+  .studio{width:100%;max-width:600px;}
+  .ava-preview{font-size:5.5rem;text-align:center;background:var(--card);border-radius:var(--radius);padding:24px;position:relative;}
+  .ava-preview .frame{position:absolute;inset:0;border-radius:var(--radius);pointer-events:none;}
+  .shelf-title{display:flex;justify-content:space-between;align-items:center;margin:18px 0 8px;}
+  .shelf-title h3{margin:0;font-size:1.1rem;}
+  .shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;}
+  .item{aspect-ratio:1;border-radius:18px;background:var(--card);display:grid;place-items:center;font-size:1.8rem;cursor:pointer;position:relative;border:2px solid transparent;}
+  .item.sel{border-color:var(--gold);}
+  .item.locked{opacity:.4;}
+  .item .cost{position:absolute;bottom:-2px;right:2px;font-size:.62rem;color:var(--gold);font-weight:700;}
+
+  .toast{position:fixed;left:50%;bottom:40px;transform:translateX(-50%) translateY(120px);background:var(--ink);color:var(--cream);
+         padding:12px 20px;border-radius:999px;font-weight:600;z-index:50;transition:transform .35s;box-shadow:var(--shadow);}
+  .toast.show{transform:translateX(-50%) translateY(0);}
+  .row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;}
+  .scrollable{overflow-y:auto;-webkit-overflow-scrolling:touch;width:100%;max-width:620px;padding-bottom:20px;}
+  label.field{display:block;width:100%;max-width:420px;text-align:left;margin-top:10px;}
+  label.field span{display:block;color:var(--lilac);font-size:.9rem;margin-bottom:6px;}
+  input.txt{width:100%;font-family:inherit;font-size:1.2rem;padding:14px 16px;border-radius:16px;border:none;background:var(--card-solid);color:var(--ink);}
+  @media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important;}}
+</style>
+</head>
+<body>
+<div id="sky"></div>
+<div id="app">
+
+  <div class="topbar" id="topbar" style="display:none">
+    <button class="iconbtn" id="backBtn">‹</button>
+    <div class="pill" id="starPill">⭐ <span id="starCount">0</span></div>
+    <button class="iconbtn" id="homeBtn">⌂</button>
+  </div>
+
+  <section class="screen active" id="scrWelcome">
+    <div class="langtog" style="position:absolute;top:calc(env(safe-area-inset-top) + 16px);right:18px">
+      <button data-lang="uk" class="on">UA</button>
+      <button data-lang="en">EN</button>
+    </div>
+    <div style="font-size:4.5rem">🌟</div>
+    <h1 data-t="title">Зорелік</h1>
+    <p class="tag" data-t="subtitle">Математика, що сяє</p>
+    <div style="height:30px"></div>
+    <button class="btn wide" id="startBtn" data-t="start">Грати</button>
+  </section>
+
+  <section class="screen" id="scrProfiles">
+    <h1 data-t="whoPlays">Хто грає?</h1>
+    <div class="grid profiles scrollable" id="profileGrid"></div>
+  </section>
+
+  <section class="screen" id="scrNewProfile">
+    <h1 data-t="newProfile">Новий гравець</h1>
+    <div class="ava-preview" id="npAva" style="max-width:200px;margin:14px auto">🦊</div>
+    <div class="row" id="npAvaRow" style="margin:10px 0 4px"></div>
+    <label class="field"><span data-t="yourName">Як тебе звати?</span>
+      <input class="txt" id="npName" maxlength="12" placeholder="..."></label>
+    <div style="height:18px"></div>
+    <button class="btn wide" id="npCreate" data-t="create">Створити</button>
+  </section>
+
+  <section class="screen" id="scrAge">
+    <h1 data-t="pickLevel">Обери світ</h1>
+    <p class="tag" data-t="pickLevelSub">Кожен світ — 30 рівнів</p>
+    <div class="grid ages scrollable" id="ageGrid"></div>
+    <div style="height:14px"></div>
+    <button class="btn ghost" id="ageStudio" data-t="customize">Аватарка</button>
+  </section>
+
+  <section class="screen" id="scrMap">
+    <div class="maphead"><h1 id="mapTitle">Світ</h1><p class="tag" id="mapSub"></p></div>
+    <div class="map" id="mapNodes"></div>
+  </section>
+
+  <section class="screen" id="scrQuiz">
+    <div class="quizwrap">
+      <div class="progress"><div id="progBar"></div></div>
+      <div style="display:flex;justify-content:space-between;width:100%">
+        <span class="qcount"><span id="qNow">1</span> / <span id="qTotal">10</span></span>
+        <span class="qbadge" id="qLevelBadge"></span>
+      </div>
+      <div class="question" id="qText">2 + 2</div>
+      <div class="answers" id="answers"></div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrReward">
+    <div class="reward">
+      <div class="big" id="rwEmoji">🎉</div>
+      <h1 id="rwTitle">Чудово!</h1>
+      <div class="star-row" id="rwStars">⭐⭐⭐</div>
+      <p class="earned"><span data-t="youEarned">Зароблено</span> +<span id="rwEarned">3</span> ⭐</p>
+      <p class="tag" id="rwUnlock" style="display:none"></p>
+      <div style="height:20px"></div>
+      <div class="row">
+        <button class="btn" id="rwNext" data-t="nextLevel">Далі</button>
+        <button class="btn ghost" id="rwAgain" data-t="playAgain">Ще раз</button>
+        <button class="btn ghost" id="rwMap" data-t="toMap">До мапи</button>
+      </div>
+    </div>
+  </section>
+
+  <section class="screen" id="scrStudio">
+    <div class="studio scrollable">
+      <h1 data-t="studio">Студія аватарки</h1>
+      <div class="ava-preview" id="studioPreview"><span id="studioFace">🦊</span><div class="frame" id="studioFrame"></div></div>
+      <div class="shelf-title"><h3 data-t="faces">Персонаж</h3></div>
+      <div class="shelf" id="shelfFaces"></div>
+      <div class="shelf-title"><h3 data-t="hats">Капелюшки</h3></div>
+      <div class="shelf" id="shelfHats"></div>
+      <div class="shelf-title"><h3 data-t="frames">Рамки</h3></div>
+      <div class="shelf" id="shelfFrames"></div>
+      <div style="height:24px"></div>
+      <button class="btn wide" id="studioDone" data-t="done">Готово</button>
+    </div>
+  </section>
+
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================================================
+   ЗОРЕЛІК / STAR MATH — level-map edition
+   5 worlds × 30 levels. Semi-gated: need ⭐ to unlock next.
+   ============================================================ */
+
+const LEVELS_PER_WORLD = 30;
+const QN_NORMAL = 10;          // questions on a normal level
+const QN_BOSS   = 15;          // every 5th level is a boss
+const STARS_TO_UNLOCK = 1;     // must earn ≥1 star on a level to open the next
+
+const I18N = {
+  uk:{
+    title:"Зорелік", subtitle:"Математика, що сяє", start:"Грати",
+    whoPlays:"Хто грає?", newProfile:"Новий гравець", yourName:"Як тебе звати?",
+    create:"Створити", pickLevel:"Обери світ", pickLevelSub:"Кожен світ — 30 рівнів",
+    youEarned:"Зароблено", playAgain:"Ще раз", customize:"Аватарка", nextLevel:"Далі", toMap:"До мапи",
+    studio:"Студія аватарки", faces:"Персонаж", hats:"Капелюшки", frames:"Рамки", done:"Готово",
+    addPlayer:"Додати", correct:"Правильно!", tryNext:"Майже!",
+    locked:"Назбирай ще ⭐", bought:"Розблоковано!", levelLocked:"Спершу пройди попередній рівень",
+    perfect:"Бездоганно!", good:"Молодець!", keepGoing:"Так тримати!", tryAgain:"Спробуй ще!",
+    level:"Рівень", boss:"Зоряний бос", unlockedNext:"Відкрито наступний рівень!",
+    worldDone:"Світ пройдено! 🏆",
+    ageNames:["Малятко","Початок","Школярик","Майстер","Геній"],
+    ageDesc:["Лічба й числа","Додавання й віднімання","Множення й ділення","Дроби й відсотки","Рівняння й логіка"]
+  },
+  en:{
+    title:"Star Math", subtitle:"Math that shines", start:"Play",
+    whoPlays:"Who's playing?", newProfile:"New player", yourName:"What's your name?",
+    create:"Create", pickLevel:"Pick a world", pickLevelSub:"Each world has 30 levels",
+    youEarned:"Earned", playAgain:"Again", customize:"Avatar", nextLevel:"Next", toMap:"Map",
+    studio:"Avatar studio", faces:"Character", hats:"Hats", frames:"Frames", done:"Done",
+    addPlayer:"Add", correct:"Correct!", tryNext:"Almost!",
+    locked:"Earn more ⭐", bought:"Unlocked!", levelLocked:"Finish the previous level first",
+    perfect:"Perfect!", good:"Well done!", keepGoing:"Keep it up!", tryAgain:"Try again!",
+    level:"Level", boss:"Star boss", unlockedNext:"Next level unlocked!",
+    worldDone:"World complete! 🏆",
+    ageNames:["Tiny","Starter","Pupil","Master","Genius"],
+    ageDesc:["Counting & numbers","Add & subtract","Multiply & divide","Fractions & %","Equations & logic"]
+  }
+};
+let LANG = localStorage.getItem("sm_lang") || "uk";
+const t = k => (I18N[LANG][k] ?? k);
+const ofWord = () => LANG==="uk" ? "від" : "of";
+
+const FACES=[{e:"🦊",c:0},{e:"🐼",c:0},{e:"🐯",c:0},{e:"🐸",c:0},{e:"🦁",c:8},{e:"🐧",c:8},
+  {e:"🦄",c:15},{e:"🐲",c:15},{e:"🦉",c:20},{e:"🐙",c:20},{e:"🦖",c:30},{e:"👽",c:30},
+  {e:"🤖",c:40},{e:"🦋",c:25},{e:"🐝",c:12},{e:"🦕",c:35}];
+const HATS=[{e:"",c:0},{e:"🎩",c:6},{e:"👑",c:25},{e:"🧢",c:6},{e:"🎓",c:18},{e:"🪄",c:30},
+  {e:"⭐",c:10},{e:"🌈",c:22},{e:"🔥",c:28},{e:"❄️",c:15}];
+const FRAMES=[{id:"none",c:0,css:""},
+  {id:"gold",c:12,css:"box-shadow:inset 0 0 0 5px var(--gold)"},
+  {id:"mint",c:12,css:"box-shadow:inset 0 0 0 5px var(--mint)"},
+  {id:"glow",c:30,css:"box-shadow:inset 0 0 0 4px var(--lilac),0 0 30px var(--lilac)"},
+  {id:"rainbow",c:45,css:"box-shadow:inset 0 0 0 5px #ff7a7a, inset 0 0 0 9px #ffd25a, inset 0 0 0 13px #5fd6a6"}];
+
+/* ---------- storage ---------- */
+function loadProfiles(){ try{return JSON.parse(localStorage.getItem("sm_profiles"))||[]}catch{return[]} }
+function saveProfiles(p){ localStorage.setItem("sm_profiles",JSON.stringify(p)); }
+let profiles = loadProfiles();
+let current = null;
+
+function newProfileObj(name,face){
+  return {id:Date.now(),name:name||"Гравець",stars:0,
+          face:face||"🦊",hat:"",frame:"none",
+          unlocked:{faces:FACES.filter(f=>f.c===0).map(f=>f.e),hats:[""],frames:["none"]},
+          progress:{}}; // progress[world] = { "levelIndex": starsEarned, ... }
+}
+function migrate(p){
+  if(!p.progress) p.progress={};
+  if(!p.unlocked) p.unlocked={faces:FACES.filter(f=>f.c===0).map(f=>f.e),hats:[""],frames:["none"]};
+  return p;
+}
+profiles=profiles.map(migrate);
+function persist(){ saveProfiles(profiles); }
+
+/* ---------- world progress helpers ---------- */
+function worldStars(world){ const w=current.progress[world]||{}; return Object.values(w).reduce((a,b)=>a+b,0); }
+function levelStars(world,lvl){ return (current.progress[world]||{})[lvl]||0; }
+function isUnlocked(world,lvl){
+  if(lvl===0) return true;
+  return levelStars(world,lvl-1) >= STARS_TO_UNLOCK;
+}
+function isBoss(lvl){ return (lvl+1)%5===0; }
+function worldCompletedCount(world){ return Object.keys(current.progress[world]||{}).filter(k=>(current.progress[world][k]||0)>0).length; }
+
+/* ---------- navigation ---------- */
+const screens=["Welcome","Profiles","NewProfile","Age","Map","Quiz","Reward","Studio"];
+let navStack=[];
+function show(name,pushPrev){
+  const cur=document.querySelector(".screen.active");
+  if(pushPrev && cur) navStack.push(cur.id.replace("scr",""));
+  screens.forEach(s=>document.getElementById("scr"+s).classList.toggle("active",s===name));
+  document.getElementById("topbar").style.display=(name==="Welcome")?"none":"flex";
+  updateStarPill();
+}
+document.getElementById("backBtn").onclick=()=>{ const p=navStack.pop(); if(p) show(p); else show("Profiles"); afterNav(); };
+document.getElementById("homeBtn").onclick=()=>{ navStack=[]; show("Profiles"); renderProfiles(); };
+function afterNav(){
+  const active=document.querySelector(".screen.active").id;
+  if(active==="scrProfiles") renderProfiles();
+  if(active==="scrAge") renderAges();
+  if(active==="scrMap") renderMap();
+}
+
+/* ---------- language ---------- */
+function applyLang(){
+  document.querySelectorAll("[data-t]").forEach(el=>el.textContent=t(el.getAttribute("data-t")));
+  document.documentElement.lang=LANG;
+  document.querySelectorAll(".langtog button").forEach(b=>b.classList.toggle("on",b.dataset.lang===LANG));
+}
+document.querySelectorAll(".langtog button").forEach(b=>{
+  b.onclick=()=>{ LANG=b.dataset.lang; localStorage.setItem("sm_lang",LANG); applyLang(); afterNav(); };
+});
+
+function updateStarPill(){ document.getElementById("starCount").textContent=current?current.stars:0; }
+let toastTimer;
+function toast(msg){ const el=document.getElementById("toast"); el.textContent=msg; el.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>el.classList.remove("show"),1600); }
+
+/* ---------- profiles ---------- */
+function renderProfiles(){
+  const g=document.getElementById("profileGrid"); g.innerHTML="";
+  profiles.forEach(p=>{
+    const d=document.createElement("div"); d.className="profile-card";
+    d.innerHTML=`<div class="ava">${p.hat||""}${p.face}</div><div class="pname">${escapeHtml(p.name)}</div><div class="pstars">⭐ ${p.stars}</div>`;
+    d.onclick=()=>{ current=p; updateStarPill(); show("Age",true); renderAges(); };
+    d.oncontextmenu=(e)=>{e.preventDefault();maybeDelete(p);};
+    g.appendChild(d);
+  });
+  const add=document.createElement("div"); add.className="profile-card add";
+  add.innerHTML=`<div class="ava">＋</div><div class="pname">${t("addPlayer")}</div>`;
+  add.onclick=openNewProfile; g.appendChild(add);
+}
+function maybeDelete(p){ if(confirm((LANG==="uk"?"Видалити гравця ":"Delete player ")+p.name+"?")){ profiles=profiles.filter(x=>x.id!==p.id); persist(); renderProfiles(); } }
+
+/* ---------- new profile ---------- */
+let npFace="🦊";
+function openNewProfile(){
+  npFace="🦊"; document.getElementById("npName").value=""; document.getElementById("npAva").textContent=npFace;
+  const row=document.getElementById("npAvaRow"); row.innerHTML="";
+  FACES.filter(f=>f.c===0).forEach(f=>{ const b=document.createElement("button"); b.className="iconbtn"; b.textContent=f.e;
+    b.onclick=()=>{npFace=f.e;document.getElementById("npAva").textContent=f.e;}; row.appendChild(b); });
+  show("NewProfile",true);
+}
+document.getElementById("npCreate").onclick=()=>{
+  const name=document.getElementById("npName").value.trim();
+  const p=newProfileObj(name,npFace); profiles.push(p); persist();
+  current=p; updateStarPill(); show("Age"); renderAges();
+};
+
+/* ---------- worlds / age screen ---------- */
+const RANGES=["4–5","6–7","8–10","11–13","14–16"];
+const EMO=["🐣","🌱","📚","🧮","🚀"];
+function renderAges(){
+  const g=document.getElementById("ageGrid"); g.innerHTML="";
+  RANGES.forEach((r,i)=>{
+    const done=worldCompletedCount(i); const pct=Math.round(done/LEVELS_PER_WORLD*100);
+    const d=document.createElement("div"); d.className="age-card";
+    d.innerHTML=`<div class="emoji">${EMO[i]}</div><div class="arange">${r}</div>
+      <div style="font-weight:600">${t("ageNames")[i]}</div><div class="adesc">${t("ageDesc")[i]}</div>
+      <div class="aprog"><div style="width:${pct}%"></div></div>
+      <div class="apct">${done}/${LEVELS_PER_WORLD}</div>`;
+    d.onclick=()=>{ openWorld(i); };
+    g.appendChild(d);
+  });
+}
+document.getElementById("ageStudio").onclick=()=>{ openStudio(); };
+
+/* ---------- level map ---------- */
+let mapWorld=0;
+function openWorld(world){ mapWorld=world; show("Map",true); renderMap(); }
+function renderMap(){
+  const world=mapWorld;
+  document.getElementById("mapTitle").textContent=`${EMO[world]} ${t("ageNames")[world]} · ${RANGES[world]}`;
+  document.getElementById("mapSub").textContent=`${worldCompletedCount(world)}/${LEVELS_PER_WORLD} · ⭐ ${worldStars(world)}`;
+  const wrap=document.getElementById("mapNodes"); wrap.innerHTML="";
+  let firstOpenScrolled=null;
+  for(let lvl=0;lvl<LEVELS_PER_WORLD;lvl++){
+    const earned=levelStars(world,lvl);
+    const unlocked=isUnlocked(world,lvl);
+    const done=earned>0;
+    const boss=isBoss(lvl);
+    const isCurrent = unlocked && !done; // first unfinished unlocked level
+    const nw=document.createElement("div"); nw.className="node-wrap";
+    // staggered left/right for a winding path
+    const offset=Math.sin(lvl*0.9)*70;
+    nw.style.transform=`translateX(${offset}px)`;
+    const node=document.createElement("div");
+    let cls="node "+(boss?"boss ":"");
+    if(!unlocked) cls+="locked";
+    else if(done) cls+= boss?"boss":"done";
+    else cls+="open";
+    if(isCurrent) cls+=" current";
+    node.className=cls;
+    if(!unlocked){ node.innerHTML=`<span class="nlock">🔒</span>`; }
+    else { node.textContent = boss ? "👑" : (lvl+1); }
+    if(done){ const s=document.createElement("div"); s.className="nstars"; s.textContent="⭐".repeat(earned)+"·".repeat(3-earned); node.appendChild(s); }
+    node.onclick=()=>{ if(!unlocked){ toast(t("levelLocked")); return;} startLevel(world,lvl); };
+    nw.appendChild(node);
+    if(boss){ const lab=document.createElement("div"); lab.className="node-label"; lab.textContent=t("boss"); nw.appendChild(lab); }
+    wrap.appendChild(nw);
+    if(isCurrent && firstOpenScrolled===null) firstOpenScrolled=nw;
+  }
+  // scroll current level into view
+  setTimeout(()=>{ if(firstOpenScrolled) firstOpenScrolled.scrollIntoView({block:"center",behavior:"auto"}); },30);
+}
+
+/* ============================================================
+   QUESTION GENERATION — scales by world AND by level (0..29)
+   tier = how deep into the world (0..1)
+   ============================================================ */
+const rnd=(a,b)=>Math.floor(Math.random()*(b-a+1))+a;
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=rnd(0,i);[a[i],a[j]]=[a[j],a[i]];}return a;}
+function buildChoices(answer,spread){
+  const set=new Set([answer]);
+  let guard=0;
+  while(set.size<4 && guard++<50){ let d=answer+rnd(-spread,spread); if(d<0)d=Math.abs(d)+1; set.add(d); }
+  while(set.size<4){ set.add(answer+set.size); }
+  return shuffle([...set]);
+}
+
+function makeQuestion(world,lvl){
+  const tier=lvl/(LEVELS_PER_WORLD-1); // 0..1 difficulty within world
+  switch(world){
+    case 0: return qTiny(tier);
+    case 1: return qAddSub(tier);
+    case 2: return qMulDiv(tier);
+    case 3: return qFractions(tier);
+    case 4: return qEquations(tier);
+  }
+}
+
+function qTiny(tier){
+  // early: count emojis to ~5, then to 10; later: +/- within 5 then 10
+  const stage=Math.floor(tier*4); // 0..3
+  if(stage<=0){ const n=rnd(1,5); const f=["🍎","⭐","🐠","🎈","🍓","🐥"][rnd(0,5)];
+    return {q:f.repeat(n),ans:n,choices:buildChoices(n,2),big:true}; }
+  if(stage===1){ const n=rnd(3,10); const f=["🍎","⭐","🐠","🎈","🍓","🐥"][rnd(0,5)];
+    return {q:f.repeat(n),ans:n,choices:buildChoices(n,3),big:true}; }
+  if(stage===2){ const a=rnd(1,5),b=rnd(1,5); return {q:`${a} + ${b}`,ans:a+b,choices:buildChoices(a+b,3)}; }
+  let a=rnd(2,10),b=rnd(1,a); return {q:`${a} − ${b}`,ans:a-b,choices:buildChoices(a-b,3)};
+}
+function qAddSub(tier){
+  const max = Math.round(10 + tier*40); // 10 → 50
+  const stage=Math.floor(tier*4);
+  if(stage>=3 && Math.random()<0.5){ // three numbers, kept non-negative
+    const a=rnd(2,max),b=rnd(2,max); const c=rnd(1,a+b); // c never exceeds a+b
+    return {q:`${a} + ${b} − ${c}`,ans:a+b-c,choices:buildChoices(a+b-c,6)};
+  }
+  if(Math.random()<0.5){ const a=rnd(1,max),b=rnd(1,max); return {q:`${a} + ${b}`,ans:a+b,choices:buildChoices(a+b,Math.max(4,Math.round(max*.2)))}; }
+  let a=rnd(1,max),b=rnd(1,max); if(b>a)[a,b]=[b,a];
+  return {q:`${a} − ${b}`,ans:a-b,choices:buildChoices(a-b,Math.max(4,Math.round(max*.2)))};
+}
+function qMulDiv(tier){
+  const top = Math.round(5 + tier*7); // tables up to 5 → 12
+  const stage=Math.floor(tier*4);
+  if(stage>=3 && Math.random()<0.4){ // mixed: a×b + c
+    const a=rnd(2,top),b=rnd(2,top),c=rnd(2,9); return {q:`${a} × ${b} + ${c}`,ans:a*b+c,choices:buildChoices(a*b+c,8)};
+  }
+  if(Math.random()<0.5){ const a=rnd(2,top),b=rnd(2,top); return {q:`${a} × ${b}`,ans:a*b,choices:buildChoices(a*b,Math.max(6,top))}; }
+  const b=rnd(2,top),ans=rnd(2,top); const a=b*ans; return {q:`${a} ÷ ${b}`,ans,choices:buildChoices(ans,5)};
+}
+function qFractions(tier){
+  const stage=Math.floor(tier*4); // 0..3
+  if(stage===0){ const pct=[10,25,50][rnd(0,2)]; const base=[20,40,60,80,100][rnd(0,4)];
+    const ans=base*pct/100; return {q:`${pct}% ${ofWord()} ${base}`,ans,choices:buildChoices(ans,Math.max(5,Math.round(ans*.4)))}; }
+  if(stage===1){ const pct=[5,15,20,30,40,75][rnd(0,5)]; const base=[20,40,60,80,120,200][rnd(0,5)];
+    const ans=base*pct/100; return {q:`${pct}% ${ofWord()} ${base}`,ans,choices:buildChoices(ans,Math.max(6,Math.round(ans*.4)))}; }
+  if(stage===2){ const den=[2,3,4,5,6][rnd(0,4)]; const num=rnd(1,den-1); const base=den*rnd(2,9);
+    const ans=base/den*num; return {q:`${num}/${den} ${ofWord()} ${base}`,ans,choices:buildChoices(ans,6)}; }
+  const den=[4,5,6,8,10][rnd(0,4)]; let n1=rnd(1,den-1),n2=rnd(1,den-1);
+  return {q:`${n1}/${den} + ${n2}/${den}`,ans:n1+n2,choices:buildChoices(n1+n2,3),suffix:`/${den}`};
+}
+function qEquations(tier){
+  const stage=Math.floor(tier*5); // 0..4
+  const top=Math.round(8+tier*20);
+  if(stage<=0){ const x=rnd(2,top),b=rnd(1,top); return {q:`x + ${b} = ${x+b},  x = ?`,ans:x,choices:buildChoices(x,5)}; }
+  if(stage===1){ const x=rnd(2,top),b=rnd(1,top); return {q:`x − ${b} = ${x-b},  x = ?`,ans:x,choices:buildChoices(x,5)}; }
+  if(stage===2){ const x=rnd(2,12),k=rnd(2,6); return {q:`${k}·x = ${k*x},  x = ?`,ans:x,choices:buildChoices(x,4)}; }
+  if(stage===3){ const a=rnd(2,8),b=rnd(2,8),c=rnd(2,8); return {q:`${a} + ${b} × ${c}`,ans:a+b*c,choices:buildChoices(a+b*c,8)}; }
+  // linear: k·x + b = r
+  const x=rnd(2,9),k=rnd(2,5),b=rnd(1,12); const r=k*x+b;
+  return {q:`${k}·x + ${b} = ${r},  x = ?`,ans:x,choices:buildChoices(x,4)};
+}
+
+/* ---------- level / quiz flow ---------- */
+let quiz={i:0,correct:0,world:0,lvl:0,total:QN_NORMAL,boss:false};
+function startLevel(world,lvl){
+  const boss=isBoss(lvl);
+  quiz={i:0,correct:0,world,lvl,total:boss?QN_BOSS:QN_NORMAL,boss};
+  document.getElementById("qTotal").textContent=quiz.total;
+  document.getElementById("qLevelBadge").textContent= boss ? "👑 "+t("boss") : t("level")+" "+(lvl+1);
+  show("Quiz",true); nextQuestion();
+}
+function nextQuestion(){
+  if(quiz.i>=quiz.total) return finishLevel();
+  quiz.cur=makeQuestion(quiz.world,quiz.lvl);
+  document.getElementById("qNow").textContent=quiz.i+1;
+  document.getElementById("progBar").style.width=(quiz.i/quiz.total*100)+"%";
+  const qt=document.getElementById("qText"); qt.textContent=quiz.cur.q;
+  qt.style.fontSize=quiz.cur.big?"clamp(2rem,9vw,3.4rem)":"";
+  const sfx=quiz.cur.suffix||"";
+  const box=document.getElementById("answers"); box.innerHTML="";
+  quiz.cur.choices.forEach(ch=>{ const b=document.createElement("button"); b.className="answer"; b.textContent=ch+sfx;
+    b.onclick=()=>pick(b,ch); box.appendChild(b); });
+}
+let lock=false;
+function pick(btn,val){
+  if(lock) return; lock=true;
+  const buttons=[...document.querySelectorAll(".answer")]; buttons.forEach(b=>b.disabled=true);
+  const sfx=quiz.cur.suffix||"";
+  if(val===quiz.cur.ans){ btn.classList.add("correct"); quiz.correct++; awardStars(1); toast(t("correct")); }
+  else{ btn.classList.add("wrong"); toast(t("tryNext"));
+    buttons.forEach(b=>{ if(b.textContent===quiz.cur.ans+sfx) b.classList.add("correct"); }); }
+  setTimeout(()=>{ lock=false; quiz.i++; nextQuestion(); }, val===quiz.cur.ans?600:1150);
+}
+function awardStars(n){ current.stars+=n; persist(); updateStarPill(); }
+
+function finishLevel(){
+  document.getElementById("progBar").style.width="100%";
+  const c=quiz.correct, total=quiz.total, ratio=c/total;
+  // star rating for this level (0..3)
+  let rating=0;
+  if(ratio>=0.95) rating=3; else if(ratio>=0.75) rating=2; else if(ratio>=0.5) rating=1; else rating=0;
+  // bonus stars (added to wallet) for boss levels and high scores
+  let bonus=0; if(quiz.boss) bonus+=rating; if(rating===3) bonus+=1;
+  if(bonus>0) awardStars(bonus);
+
+  // record best rating for this level
+  const w=current.progress[quiz.world]||(current.progress[quiz.world]={});
+  const prev=w[quiz.lvl]||0; const newRating=Math.max(prev,rating); w[quiz.lvl]=newRating; persist();
+
+  // unlock messaging
+  const justUnlocked = prev<STARS_TO_UNLOCK && newRating>=STARS_TO_UNLOCK && quiz.lvl+1<LEVELS_PER_WORLD;
+  const finishedWorld = quiz.lvl+1===LEVELS_PER_WORLD && newRating>=STARS_TO_UNLOCK;
+
+  let emoji,title;
+  if(rating===3){emoji=quiz.boss?"🏆":"🌟"; title=t("perfect");}
+  else if(rating===2){emoji="✨"; title=t("good");}
+  else if(rating===1){emoji="💪"; title=t("keepGoing");}
+  else {emoji="🔁"; title=t("tryAgain");}
+
+  document.getElementById("rwEmoji").textContent=emoji;
+  document.getElementById("rwTitle").textContent=title;
+  document.getElementById("rwStars").textContent="⭐".repeat(rating)+"☆".repeat(3-rating);
+  document.getElementById("rwEarned").textContent=c+bonus;
+  const un=document.getElementById("rwUnlock");
+  if(finishedWorld){ un.style.display=""; un.textContent=t("worldDone"); }
+  else if(justUnlocked){ un.style.display=""; un.textContent=t("unlockedNext"); }
+  else { un.style.display="none"; }
+
+  // Next button only if a next, unlocked level exists
+  const canNext = quiz.lvl+1<LEVELS_PER_WORLD && (newRating>=STARS_TO_UNLOCK);
+  document.getElementById("rwNext").style.display = canNext ? "" : "none";
+
+  if(rating>=2) burst();
+  show("Reward");
+}
+document.getElementById("rwNext").onclick=()=>startLevel(quiz.world,quiz.lvl+1);
+document.getElementById("rwAgain").onclick=()=>startLevel(quiz.world,quiz.lvl);
+document.getElementById("rwMap").onclick=()=>{ show("Map"); renderMap(); };
+
+/* ---------- confetti ---------- */
+function burst(){
+  const colors=["#ffd25a","#5fd6a6","#ff7a7a","#a89be0","#fff"];
+  for(let i=0;i<26;i++){ const s=document.createElement("div"); s.textContent="⭐";
+    s.style.cssText=`position:fixed;left:50%;top:30%;z-index:40;font-size:${rnd(14,26)}px;pointer-events:none;color:${colors[rnd(0,4)]};`;
+    document.body.appendChild(s);
+    const dx=(Math.random()-.5)*window.innerWidth*1.1, dy=(Math.random()-.2)*window.innerHeight*0.9;
+    s.animate([{transform:"translate(0,0) scale(.4)",opacity:1},
+      {transform:`translate(${dx}px,${dy}px) rotate(${rnd(-360,360)}deg) scale(1)`,opacity:0}],
+      {duration:rnd(900,1500),easing:"cubic-bezier(.2,.6,.3,1)"}).onfinish=()=>s.remove();
+  }
+}
+
+/* ---------- avatar studio ---------- */
+function openStudio(){ show("Studio",true); renderStudio(); }
+function renderStudio(){
+  updatePreview();
+  renderShelf("Faces",FACES,"faces","face",FACES.map(f=>f.e));
+  renderShelf("Hats",HATS,"hats","hat",HATS.map(h=>h.e));
+  renderShelf("Frames",FRAMES,"frames","frame",FRAMES.map(f=>f.id),true);
+}
+function updatePreview(){
+  document.getElementById("studioFace").textContent=(current.hat||"")+current.face;
+  const fr=FRAMES.find(f=>f.id===current.frame)||FRAMES[0];
+  document.getElementById("studioFrame").style.cssText=fr.css;
+}
+function renderShelf(name,list,bucket,prop,keys,isFrame){
+  const shelf=document.getElementById("shelf"+name); shelf.innerHTML="";
+  list.forEach((item,idx)=>{
+    const key=keys[idx]; const owned=current.unlocked[bucket].includes(key);
+    const el=document.createElement("div");
+    el.className="item"+(current[prop]===key?" sel":"")+(owned?"":" locked");
+    el.innerHTML=isFrame?`<span style="font-size:1rem">🖼️</span>`:(item.e||"∅");
+    if(isFrame) el.style.cssText+=item.css;
+    if(!owned) el.innerHTML+=`<span class="cost">${item.c}⭐</span>`;
+    el.onclick=()=>{ if(owned){ current[prop]=key; persist(); renderStudio(); } else tryBuy(bucket,key,item.c,prop); };
+    shelf.appendChild(el);
+  });
+}
+function tryBuy(bucket,key,cost,prop){
+  if(current.stars>=cost){ current.stars-=cost; current.unlocked[bucket].push(key); current[prop]=key;
+    persist(); updateStarPill(); toast(t("bought")); renderStudio(); }
+  else toast(t("locked"));
+}
+document.getElementById("studioDone").onclick=()=>{ persist(); show("Age"); renderAges(); };
+
+/* ---------- misc ---------- */
+function escapeHtml(s){return s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+document.getElementById("startBtn").onclick=()=>{ show("Profiles",true); renderProfiles(); };
+
+(function sky(){
+  const sky=document.getElementById("sky");
+  const n=Math.min(70,Math.floor(window.innerWidth*window.innerHeight/14000));
+  for(let i=0;i<n;i++){ const d=document.createElement("div"); d.className="star-dot";
+    const sz=Math.random()*2.4+1;
+    d.style.cssText=`width:${sz}px;height:${sz}px;left:${Math.random()*100}%;top:${Math.random()*100}%;animation-delay:${Math.random()*4}s;animation-duration:${3+Math.random()*4}s;`;
+    sky.appendChild(d); }
+})();
+
+applyLang();
+renderProfiles();
+</script>
+</body>
+</html>
